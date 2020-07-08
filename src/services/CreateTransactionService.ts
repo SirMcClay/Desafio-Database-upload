@@ -1,10 +1,12 @@
-import { getCustomRepository } from 'typeorm';
+import { getCustomRepository, getRepository } from 'typeorm';
 
-// import AppError from '../errors/AppError';
+import AppError from '../errors/AppError';
 
 import Transaction from '../models/Transaction';
+import Category from '../models/Category';
 import TransactionsRepository from '../repositories/TransactionsRepository';
-// import Category from '../models/Category';
+
+import CreateCategoryService from './CreateCategoryService';
 
 interface Request {
   title: string;
@@ -20,18 +22,36 @@ class CreateTransactionService {
     category,
   }: Request): Promise<Transaction> {
     const transactionsRepository = getCustomRepository(TransactionsRepository);
+    const categoriesRepository = getRepository(Category);
 
-    const findCategoryDuplicated = await transactionsRepository.findOne({
-      where: { category },
+    const balance = await transactionsRepository.getBalance();
+    const checkBalance = balance.total - value;
+
+    if (type === 'outcome' && checkBalance < 0) {
+      throw new AppError('Transaction refused. Cause balance to be negative.');
+    }
+
+    let categoryID: string;
+
+    const findCategoryDuplicated = await categoriesRepository.findOne({
+      where: { title: category },
     });
+
+    if (!findCategoryDuplicated) {
+      const createCategory = new CreateCategoryService();
+
+      const categoryAdd = await createCategory.execute({ title: category });
+
+      categoryID = categoryAdd.id;
+    } else {
+      categoryID = findCategoryDuplicated.id;
+    }
 
     const transaction = transactionsRepository.create({
       title,
       value,
       type,
-      category_id: `${
-        findCategoryDuplicated ? findCategoryDuplicated.category_id : category
-      }`,
+      category_id: categoryID,
     });
 
     await transactionsRepository.save(transaction);
