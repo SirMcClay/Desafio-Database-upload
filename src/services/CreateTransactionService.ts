@@ -25,9 +25,8 @@ class CreateTransactionService {
     const categoriesRepository = getRepository(Category);
 
     const balance = await transactionsRepository.getBalance();
-    const checkBalance = balance.total - value;
 
-    if (type === 'outcome' && checkBalance < 0) {
+    if (type === 'outcome' && balance.total - value < 0) {
       throw new AppError('Transaction refused. Cause balance to be negative.');
     }
 
