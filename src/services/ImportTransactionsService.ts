@@ -38,27 +38,26 @@ class ImportTransactionsService {
 
     const createTransaction = new CreateTransactionService();
 
-    const transactions: Transaction[] = [];
+    let transactions: Transaction;
+    const transactionsArray: Transaction[] = [];
 
-    const runCSVtoTransactions = data.map(async transaction => {
+    data.forEach(async transaction => {
       const title = transaction[0];
       const type = transaction[1];
       const value = transaction[2];
       const category = transaction[3];
 
-      const transactionAdd = await createTransaction.execute({
+      transactions = await createTransaction.execute({
         title,
         type: type === 'income' ? 'income' : 'outcome',
         value: Number(value),
         category,
       });
 
-      transactions.push(transactionAdd);
+      transactionsArray.push(transactions);
     });
 
-    console.log(runCSVtoTransactions);
-
-    return transactions;
+    return transactionsArray;
   }
 }
 
